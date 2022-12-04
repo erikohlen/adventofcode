@@ -155,7 +155,7 @@ class _Dec3_2022State extends State<Dec3_2022> {
         reverse: true,
         children: [
           const Text(
-            'Dec 4',
+            'Dec 3',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 32),
           ),

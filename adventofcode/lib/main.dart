@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '2022/dec1_2022.dart';
 import '2022/dec2_2022.dart';
 import '2022/dec3_2022.dart';
+import '2022/dec4_2022.dart';
 
 void main() {
   runApp(const MyApp());
@@ -35,6 +36,7 @@ class MyApp extends StatelessWidget {
         //backgroundColor: Colors.black54,
         body: PageView(
           children: [
+            Dec4_2022(),
             Dec3_2022(),
             Dec2_2022(),
             Dec1_2022(),
