@@ -37,6 +37,11 @@ class _Dec5_2022State extends State<Dec5_2022> {
       list.add('$varName: $val');
     }
 
+    if (sample.length == 0) {
+      return Text('loading...');
+    }
+
+    //! GET THE STACKS
     // Get sample but only include row 1 to 9
     var sampleRows = sample.split('\n');
 
@@ -74,9 +79,67 @@ class _Dec5_2022State extends State<Dec5_2022> {
       addToOutput(outputs, 'stack', element);
     });
 
+    //! GET THE INSTRUCTIONS
+    var instructions = [];
+    var startRow = bottomRowIndex + 3;
+    var endRow = sampleRows.length - 1;
+    for (var i = startRow; i <= endRow; i++) {
+      var row = sampleRows[i];
+      var instruction = row.split(' ');
+      instructions.add(instruction);
+    }
     //! PART 1
-
+    bool isPart1 = true;
     //! PART 2
+    isPart1 = false;
+    //! USE INSTRUCTIONS ON STACKS
+    // Function to move items in stacks
+    void followInstruction(List<String> instruction) {
+      int moveHowMany = int.parse(instruction[1]);
+      int moveFromStackIndex = int.parse(instruction[3]) - 1;
+      int moveToStackIndex = int.parse(instruction[5]) - 1;
+
+      // Pickup boxes
+      var pickedUpStacks = stacks[moveFromStackIndex].sublist(0, moveHowMany);
+      // Remove the picked up boxes
+      stacks[moveFromStackIndex].removeRange(0, moveHowMany);
+      if (isPart1) {
+        // Drop boxes in reverse order
+        pickedUpStacks.forEach((element) {
+          stacks[moveToStackIndex].insert(0, element);
+        });
+      }
+      if (!isPart1) {
+        // Add all boxes to beginning of stack
+        stacks[moveToStackIndex].insertAll(0, pickedUpStacks);
+      }
+    }
+
+    // Follow first instruction
+    //followInstruction(instructions[0]);
+
+    // Follow instructions
+    print(instructions);
+    instructions.forEach((instruction) {
+      print(instruction);
+      followInstruction(instruction);
+    });
+
+    addToOutput(outputs, 'Below is after instructions', 'Yes it is');
+    stacks.forEach((element) {
+      addToOutput(outputs, 'stack', element);
+    });
+    // Check top item in each stack
+    var topItems = [];
+    stacks.forEach((stack) {
+      topItems.add(stack[0]);
+    });
+    // Join into one string
+    var topItemsStr = topItems.join('');
+
+    addToOutput(outputs, 'topItemsStr', topItemsStr);
+
+    addToOutput(outputs, 'topItemsStr', topItemsStr);
 
     return Padding(
       padding: const EdgeInsets.all(32.0),
