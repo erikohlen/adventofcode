@@ -115,29 +115,18 @@ class _Dec5_2022State extends State<Dec5_2022> {
       }
     }
 
-    // Follow first instruction
-    //followInstruction(instructions[0]);
-
     // Follow instructions
-    print(instructions);
     instructions.forEach((instruction) {
-      print(instruction);
       followInstruction(instruction);
     });
 
-    addToOutput(outputs, 'Below is after instructions', 'Yes it is');
-    stacks.forEach((element) {
-      addToOutput(outputs, 'stack', element);
-    });
     // Check top item in each stack
     var topItems = [];
     stacks.forEach((stack) {
       topItems.add(stack[0]);
     });
-    // Join into one string
-    var topItemsStr = topItems.join('');
 
-    addToOutput(outputs, 'topItemsStr', topItemsStr);
+    var topItemsStr = topItems.join('');
 
     addToOutput(outputs, 'topItemsStr', topItemsStr);
 
