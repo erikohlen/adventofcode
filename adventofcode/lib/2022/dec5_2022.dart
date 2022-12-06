@@ -125,9 +125,7 @@ class _Dec5_2022State extends State<Dec5_2022> {
     stacks.forEach((stack) {
       topItems.add(stack[0]);
     });
-
     var topItemsStr = topItems.join('');
-
     addToOutput(outputs, 'topItemsStr', topItemsStr);
 
     return Padding(
@@ -136,7 +134,7 @@ class _Dec5_2022State extends State<Dec5_2022> {
         reverse: false,
         children: [
           const Text(
-            'Dec 4',
+            'Dec 5',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 32),
           ),
