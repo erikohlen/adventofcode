@@ -10,6 +10,7 @@ import '2022/dec3_2022.dart';
 import '2022/dec4_2022.dart';
 import '2022/dec5_2022.dart';
 import '2022/dec6_2022.dart';
+import '2022/dec7_2022.dart';
 
 void main() {
   runApp(const MyApp());
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
         //backgroundColor: Colors.black54,
         body: PageView(
           children: const [
+            Dec7_2022(),
             Dec6_2022(),
             Dec5_2022(),
             Dec4_2022(),
