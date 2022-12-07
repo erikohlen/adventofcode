@@ -1,4 +1,3 @@
-$ cd /
 $ ls
 dir dtcfhsm
 dir hblzj
