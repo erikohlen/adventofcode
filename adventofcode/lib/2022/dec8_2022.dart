@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:adventofcode/utils/load_utils.dart';
 import 'package:flutter/material.dart';
 
@@ -8,16 +10,19 @@ class Tree {
     required this.x,
     required this.y,
     required this.isOuter,
+    this.treeHeight = 0,
     this.isVisible = false,
   });
   int x;
   int y;
+  int treeHeight;
   bool isOuter;
   bool isVisible;
   int top = 0;
   int down = 0;
   int left = 0;
   int right = 0;
+  int get totalView => top * down * left * right;
 }
 
 enum Direction { TopDown, BottomUp, LeftRight, RightLeft }
@@ -48,14 +53,6 @@ class _Dec8_2022State extends State<Dec8_2022> {
     super.initState();
   }
 
-/* 
-30373
-25512
-65332
-33549
-35390 
-*/
-
   @override
   Widget build(BuildContext context) {
     var sample = sampleStr;
@@ -65,7 +62,7 @@ class _Dec8_2022State extends State<Dec8_2022> {
       list.add('$varName $val');
     }
 
-    var rows = sample.split('\n');
+    var rows = input.split('\n');
     var gridHeight = rows.length;
     var gridWidth = rows[0].length;
     var cols = List.generate(gridWidth, (index) => '');
@@ -76,9 +73,6 @@ class _Dec8_2022State extends State<Dec8_2022> {
       }
     }
 
-    //addToOutput(outputs, 'rows', rows);
-    //addToOutput(outputs, 'cols', cols);
-
     List<Tree> trees = [];
     // Add trees
     for (var i = 0; i < rows.length; i++) {
@@ -88,12 +82,9 @@ class _Dec8_2022State extends State<Dec8_2022> {
         trees.add(Tree(x: j, y: i, isOuter: isOuter, isVisible: isOuter));
       }
     }
-    // Print trees orgs
     trees.forEach((element) {
       var x = element.x;
       var y = element.y;
-      ////addToOutput(outputs, 'x', x);
-      //addToOutput(outputs, 'y', y);
     });
 
     List<int> strToListInts(String str) {
@@ -101,14 +92,91 @@ class _Dec8_2022State extends State<Dec8_2022> {
     }
 
     //! PART 1
-    // Traverse rows/cols and set set visible to true
-    var maxScenic = 0;
+    void traverseTreeGrid() {
+      // ROWS
+      for (var iy = 0; iy < gridHeight; iy++) {
+        var row = rows[iy];
+        var rowInts = strToListInts(row);
+        var treeRow = [];
+        for (var ix = 0; ix < gridWidth; ix++) {
+          var tree =
+              trees.firstWhere((element) => element.x == ix && element.y == iy);
+          // Get previous ints in _rowInts to sublist
+          List<int> subList = rowInts.sublist(0, ix);
+          // Check if all of previous ints is lower than current
+          bool allPrevTreeeisLower =
+              subList.where((element) => element < rowInts[ix]).length ==
+                  subList.length;
 
-    List<List<Tree>> _treeGrid = [];
+          if (allPrevTreeeisLower) {
+            tree.isVisible = true;
+          }
+          treeRow[iy].add(tree);
+        }
+        // Reverse row
+        rowInts = rowInts.reversed.toList();
+        for (var ix = 0; ix < gridWidth; ix++) {
+          var revX = gridWidth - ix - 1;
+          var tree = trees
+              .firstWhere((element) => element.x == revX && element.y == iy);
+          // Get previous ints in _rowInts to sublist
+          List<int> subList = rowInts.sublist(0, ix);
+          // Check if all of previous ints is lower than current
+          bool allPrevTreeeisLower =
+              subList.where((element) => element < rowInts[ix]).length ==
+                  subList.length;
+
+          if (allPrevTreeeisLower) {
+            tree.isVisible = true;
+          }
+        }
+      }
+      // COLS
+      for (var ix = 0; ix < gridWidth; ix++) {
+        var col = cols[ix];
+        var colInts = strToListInts(col);
+        for (var iy = 0; iy < gridHeight; iy++) {
+          var tree =
+              trees.firstWhere((element) => element.x == ix && element.y == iy);
+          // Get previous ints in _rowInts to sublist
+          List<int> subList = colInts.sublist(0, iy);
+          // Check if all of previous ints is lower than current
+          bool allPrevTreeeisLower =
+              subList.where((element) => element < colInts[iy]).length ==
+                  subList.length;
+
+          if (allPrevTreeeisLower) {
+            tree.isVisible = true;
+          }
+        }
+        // Reverse row
+        colInts = colInts.reversed.toList();
+
+        for (var iy = 0; iy < gridHeight; iy++) {
+          var revY = gridHeight - iy - 1;
+          var tree = trees
+              .firstWhere((element) => element.x == ix && element.y == revY);
+          // Get previous ints in _rowInts to sublist
+          List<int> subList = colInts.sublist(0, iy);
+          // Check if any of previous ints is lower than current
+          bool allPrevTreeeisLower =
+              subList.where((element) => element < colInts[iy]).length ==
+                  subList.length;
+          if (allPrevTreeeisLower) {
+            tree.isVisible = true;
+          }
+        }
+      }
+    }
+
+    // traverseTreeGrid();
+
+    //! PART 2
+    List<List<Tree>> treeGrid = [];
     void getMaxScenic() {
       // TREE BY TREE
       for (var iy = 0; iy < gridHeight; iy++) {
-        _treeGrid.add([]);
+        treeGrid.add([]);
         for (var ix = 0; ix < gridWidth; ix++) {
           int iTreeHeight = int.parse(rows[iy][ix]);
           var tree =
@@ -117,115 +185,47 @@ class _Dec8_2022State extends State<Dec8_2022> {
           // Check top
           var topCol = strToListInts(cols[ix]).sublist(0, iy);
           topCol = topCol.reversed.toList();
-          var numTreesView =
+          var topViewIndex =
               topCol.indexWhere((element) => element >= iTreeHeight);
-          tree.top = numTreesView == -1 ? topCol.length : numTreesView;
-          // Check right
-          // Check down
-          // Check left
+          tree.top = topViewIndex == -1 ? topCol.length : topViewIndex + 1;
 
-          _treeGrid[iy].add(tree);
+          // Check down
+          var downCol = strToListInts(cols[ix]).sublist(iy + 1, gridHeight);
+          var downViewIndex =
+              downCol.indexWhere((element) => element >= iTreeHeight);
+          tree.down = downViewIndex == -1 ? downCol.length : downViewIndex + 1;
+          // Check left
+          var leftRow = strToListInts(rows[iy]).sublist(0, ix);
+          leftRow = leftRow.reversed.toList();
+          var leftViewIndex =
+              leftRow.indexWhere((element) => element >= iTreeHeight);
+          tree.left = leftViewIndex == -1 ? leftRow.length : leftViewIndex + 1;
+
+          // Check right
+
+          var rightRow = strToListInts(rows[iy]).sublist(ix + 1, gridWidth);
+          var rightViewIndex =
+              rightRow.indexWhere((element) => element >= iTreeHeight);
+          tree.right =
+              rightViewIndex == -1 ? rightRow.length : rightViewIndex + 1;
+          treeGrid[iy].add(tree);
         }
       }
     }
 
     getMaxScenic();
 
-    void traverseTreeGrid() {
-      // ROWS
-      for (var iy = 0; iy < gridHeight; iy++) {
-        var row = rows[iy];
-        var _rowInts = strToListInts(row);
-        var _treeRow = [];
-        for (var ix = 0; ix < gridWidth; ix++) {
-          var tree =
-              trees.firstWhere((element) => element.x == ix && element.y == iy);
-          // Get previous ints in _rowInts to sublist
-          List<int> _subList = _rowInts.sublist(0, ix);
-          // Check if all of previous ints is lower than current
-          bool _allPrevTreeeisLower =
-              _subList.where((element) => element < _rowInts[ix]).length ==
-                  _subList.length;
-
-          if (_allPrevTreeeisLower) {
-            tree.isVisible = true;
-          }
-          _treeRow[iy].add(tree);
-        }
-        // Reverse row
-        _rowInts = _rowInts.reversed.toList();
-        for (var ix = 0; ix < gridWidth; ix++) {
-          var revX = gridWidth - ix - 1;
-          var tree = trees
-              .firstWhere((element) => element.x == revX && element.y == iy);
-          // Get previous ints in _rowInts to sublist
-          List<int> _subList = _rowInts.sublist(0, ix);
-          // Check if all of previous ints is lower than current
-          bool _allPrevTreeeisLower =
-              _subList.where((element) => element < _rowInts[ix]).length ==
-                  _subList.length;
-
-          if (_allPrevTreeeisLower) {
-            tree.isVisible = true;
-          }
-        }
-      }
-      // COLS
-      for (var ix = 0; ix < gridWidth; ix++) {
-        var col = cols[ix];
-        var _colInts = strToListInts(col);
-        for (var iy = 0; iy < gridHeight; iy++) {
-          var tree =
-              trees.firstWhere((element) => element.x == ix && element.y == iy);
-          // Get previous ints in _rowInts to sublist
-          List<int> _subList = _colInts.sublist(0, iy);
-          // Check if all of previous ints is lower than current
-          bool _allPrevTreeeisLower =
-              _subList.where((element) => element < _colInts[iy]).length ==
-                  _subList.length;
-
-          if (_allPrevTreeeisLower) {
-            tree.isVisible = true;
-          }
-        }
-        // Reverse row
-        _colInts = _colInts.reversed.toList();
-
-        for (var iy = 0; iy < gridHeight; iy++) {
-          var revY = gridHeight - iy - 1;
-          var tree = trees
-              .firstWhere((element) => element.x == ix && element.y == revY);
-          // Get previous ints in _rowInts to sublist
-          List<int> _subList = _colInts.sublist(0, iy);
-          // Check if any of previous ints is lower than current
-          bool _allPrevTreeeisLower =
-              _subList.where((element) => element < _colInts[iy]).length ==
-                  _subList.length;
-          if (_allPrevTreeeisLower) {
-            tree.isVisible = true;
-          }
-        }
-      }
-    }
-
-    //! PART 2
-
     //traverseTreeGrid();
     addToOutput(outputs, 'width', gridWidth);
     addToOutput(outputs, 'height', gridHeight);
-/* 
-
-    
- */
-    // Display grid
-    _treeGrid.forEach((row) {
-      addToOutput(outputs, '', [...row.map((Tree e) => '${e.top}')]);
-    });
 
     // Count visible trees
     int visibleTrees = trees.where((element) => element.isVisible).length;
-
     addToOutput(outputs, 'visibleTrees', visibleTrees);
+
+    // Find max view among trees
+    int maxTotalView = trees.map((Tree e) => e.totalView).toList().reduce(max);
+    addToOutput(outputs, 'maxTotalView', maxTotalView);
 
     // First guess - 1792 is too high. But right for someone else
 
