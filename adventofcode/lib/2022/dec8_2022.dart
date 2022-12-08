@@ -14,6 +14,10 @@ class Tree {
   int y;
   bool isOuter;
   bool isVisible;
+  int top = 0;
+  int down = 0;
+  int left = 0;
+  int right = 0;
 }
 
 enum Direction { TopDown, BottomUp, LeftRight, RightLeft }
@@ -58,10 +62,10 @@ class _Dec8_2022State extends State<Dec8_2022> {
     var input = inputStr;
     var outputs = <String>[];
     void addToOutput(List<String> list, String varName, dynamic val) {
-      list.add('$varName: $val');
+      list.add('$varName $val');
     }
 
-    var rows = input.split('\n');
+    var rows = sample.split('\n');
     var gridHeight = rows.length;
     var gridWidth = rows[0].length;
     var cols = List.generate(gridWidth, (index) => '');
@@ -96,12 +100,43 @@ class _Dec8_2022State extends State<Dec8_2022> {
       return str.split('').map((e) => int.parse(e)).toList();
     }
 
+    //! PART 1
     // Traverse rows/cols and set set visible to true
+    var maxScenic = 0;
+
+    List<List<Tree>> _treeGrid = [];
+    void getMaxScenic() {
+      // TREE BY TREE
+      for (var iy = 0; iy < gridHeight; iy++) {
+        _treeGrid.add([]);
+        for (var ix = 0; ix < gridWidth; ix++) {
+          int iTreeHeight = int.parse(rows[iy][ix]);
+          var tree =
+              trees.firstWhere((element) => element.x == ix && element.y == iy);
+
+          // Check top
+          var topCol = strToListInts(cols[ix]).sublist(0, iy);
+          topCol = topCol.reversed.toList();
+          var numTreesView =
+              topCol.indexWhere((element) => element >= iTreeHeight);
+          tree.top = numTreesView == -1 ? topCol.length : numTreesView;
+          // Check right
+          // Check down
+          // Check left
+
+          _treeGrid[iy].add(tree);
+        }
+      }
+    }
+
+    getMaxScenic();
+
     void traverseTreeGrid() {
       // ROWS
       for (var iy = 0; iy < gridHeight; iy++) {
         var row = rows[iy];
         var _rowInts = strToListInts(row);
+        var _treeRow = [];
         for (var ix = 0; ix < gridWidth; ix++) {
           var tree =
               trees.firstWhere((element) => element.x == ix && element.y == iy);
@@ -115,6 +150,7 @@ class _Dec8_2022State extends State<Dec8_2022> {
           if (_allPrevTreeeisLower) {
             tree.isVisible = true;
           }
+          _treeRow[iy].add(tree);
         }
         // Reverse row
         _rowInts = _rowInts.reversed.toList();
@@ -172,16 +208,20 @@ class _Dec8_2022State extends State<Dec8_2022> {
       }
     }
 
-    traverseTreeGrid();
-/* 
+    //! PART 2
+
+    //traverseTreeGrid();
     addToOutput(outputs, 'width', gridWidth);
     addToOutput(outputs, 'height', gridHeight);
+/* 
 
-    // Print trees orgs
-    trees.forEach((e) {
-      addToOutput(outputs, '-', 'x: ${e.x}, y: ${e.y}, v: ${e.isVisible}');
-    });
+    
  */
+    // Display grid
+    _treeGrid.forEach((row) {
+      addToOutput(outputs, '', [...row.map((Tree e) => '${e.top}')]);
+    });
+
     // Count visible trees
     int visibleTrees = trees.where((element) => element.isVisible).length;
 
