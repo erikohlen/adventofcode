@@ -121,16 +121,9 @@ class Board {
 
     // Tail move logic
     TailMoves tailMoves = TailMoves();
-    print('----------------------------');
-    print('xDist: $xDist');
-    print('yDist: $yDist');
-    print('dist: $dist');
-    print(dist.runtimeType);
-    print([xDist, yDist].runtimeType);
 
     // Diagnonally top left
     if ((xDist == -1 && yDist == -2) || (xDist == -2 && yDist == -1)) {
-      print('something');
       tailMoves.moves.add(MoveCmd(
         'L',
         1,
@@ -141,46 +134,38 @@ class Board {
     }
     // Diagnonally top right
     if ((xDist == 1 && yDist == -2) || (xDist == 2 && yDist == -1)) {
-      print('something');
       tailMoves.moves.add(MoveCmd('R', 1, type: MoveType.tail));
       tailMoves.moves
           .add(MoveCmd('U', 1, type: MoveType.tail, isWithouttrail: true));
     }
     // Diagnonally down right
     if ((xDist == 1 && yDist == 2) || (xDist == 2 && yDist == 1)) {
-      print('something');
       tailMoves.moves.add(MoveCmd('D', 1, type: MoveType.tail));
       tailMoves.moves
           .add(MoveCmd('R', 1, type: MoveType.tail, isWithouttrail: true));
     }
     // Diagnonally down left
     if ((xDist == -1 && yDist == 2) || (xDist == -2 && yDist == 1)) {
-      print('something');
       tailMoves.moves.add(MoveCmd('D', 1, type: MoveType.tail));
       tailMoves.moves
           .add(MoveCmd('L', 1, type: MoveType.tail, isWithouttrail: true));
     }
     // Straight up
     if ((xDist == 0 && yDist == -2)) {
-      print('something');
       tailMoves.moves.add(MoveCmd('U', 1, type: MoveType.tail));
     }
     // Straight right
     if (xDist == 2 && yDist == 0) {
-      print('move right tail!');
       tailMoves.moves.add(MoveCmd('R', 1, type: MoveType.tail));
     }
     // Straight down
     if (xDist == 0 && yDist == 2) {
-      print('something');
       tailMoves.moves.add(MoveCmd('D', 1, type: MoveType.tail));
     }
     // Straight left
     if (xDist == -2 && yDist == 0) {
-      print('something');
       tailMoves.moves.add(MoveCmd('L', 1, type: MoveType.tail));
     }
-    print('These are the tail moves: ${tailMoves.moves}');
     return tailMoves;
   }
 }
@@ -203,13 +188,13 @@ class _Dec9_2022State extends State<Dec9_2022> {
   List<Widget> tailOutputs = <Widget>[];
   List<String> moveCmdStrs = [];
   List<MoveCmd> moves = [];
-  int startX = 25;
-  int startY = 25;
+  int startX = 10;
+  int startY = 10;
   late Board board;
 
   @override
   void initState() {
-    loadAssetFileAsString("2022_${day}_sample.txt").then((value) {
+    loadAssetFileAsString("2022_${day}_input.txt").then((value) {
       setState(() {
         sampleStr = value;
         moveCmdStrs = sampleStr.split('\n');
@@ -262,7 +247,6 @@ class _Dec9_2022State extends State<Dec9_2022> {
         }
         break;
       case MoveType.tail:
-        print('is tail move!');
         board.moveTail(move);
         addToOutput(move.direction, move.distance, type: OutputType.tailMove);
 
@@ -565,7 +549,7 @@ class VisualBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     double brdWidth = MediaQuery.of(context).size.width - 64 - 300;
-    int xSquareCount = 50;
+    int xSquareCount = 200;
     int ySquareCount = xSquareCount;
     double squareSize = brdWidth / xSquareCount;
     double markerSize = squareSize;
