@@ -39,9 +39,10 @@ class MoveCmd {
   final int distance;
   final bool isSubMove;
   final MoveType type;
+  final bool isWithouttrail;
 
   MoveCmd(this.direction, this.distance,
-      {this.isSubMove = false, required this.type})
+      {this.isSubMove = false, required this.type, this.isWithouttrail = false})
       : assert(direction == 'R' ||
             direction == 'L' ||
             direction == 'U' ||
@@ -99,8 +100,10 @@ class Board {
     }
 
     // Add to history
-    t.trail.add(Pos(x: t.current.x, y: t.current.y));
-    t.trailUnique = t.trail.toSet().toList();
+    if (move.isWithouttrail == false) {
+      t.trail.add(Pos(x: t.current.x, y: t.current.y));
+      t.trailUnique = t.trail.toSet().toList();
+    }
   }
 
   TailMoves getTailMoves() {
@@ -128,30 +131,37 @@ class Board {
     // Diagnonally top left
     if ((xDist == -1 && yDist == -2) || (xDist == -2 && yDist == -1)) {
       print('something');
-      tailMoves.moves.add(MoveCmd('L', 1, type: MoveType.tail));
-      tailMoves.moves.add(MoveCmd('U', 1, type: MoveType.tail));
+      tailMoves.moves.add(MoveCmd(
+        'L',
+        1,
+        type: MoveType.tail,
+      ));
+      tailMoves.moves
+          .add(MoveCmd('U', 1, type: MoveType.tail, isWithouttrail: true));
     }
     // Diagnonally top right
     if ((xDist == 1 && yDist == -2) || (xDist == 2 && yDist == -1)) {
       print('something');
       tailMoves.moves.add(MoveCmd('R', 1, type: MoveType.tail));
-      tailMoves.moves.add(MoveCmd('U', 1, type: MoveType.tail));
+      tailMoves.moves
+          .add(MoveCmd('U', 1, type: MoveType.tail, isWithouttrail: true));
     }
     // Diagnonally down right
     if ((xDist == 1 && yDist == 2) || (xDist == 2 && yDist == 1)) {
       print('something');
       tailMoves.moves.add(MoveCmd('D', 1, type: MoveType.tail));
-      tailMoves.moves.add(MoveCmd('R', 1, type: MoveType.tail));
+      tailMoves.moves
+          .add(MoveCmd('R', 1, type: MoveType.tail, isWithouttrail: true));
     }
     // Diagnonally down left
     if ((xDist == -1 && yDist == 2) || (xDist == -2 && yDist == 1)) {
       print('something');
       tailMoves.moves.add(MoveCmd('D', 1, type: MoveType.tail));
-      tailMoves.moves.add(MoveCmd('L', 1, type: MoveType.tail));
+      tailMoves.moves
+          .add(MoveCmd('L', 1, type: MoveType.tail, isWithouttrail: true));
     }
     // Straight up
-    if ((xDist == 1 && yDist == 2) || (xDist == 2 && yDist == 1)) if (dist ==
-        [0, -2]) {
+    if ((xDist == 0 && yDist == -2)) {
       print('something');
       tailMoves.moves.add(MoveCmd('U', 1, type: MoveType.tail));
     }
@@ -178,6 +188,7 @@ class Board {
 const day = 9;
 const kHeadColor = Colors.green;
 const kTailColor = Colors.red;
+final kTrailColor = Colors.red.shade300;
 
 class Dec9_2022 extends StatefulWidget {
   const Dec9_2022({super.key});
@@ -359,11 +370,27 @@ class _Dec9_2022State extends State<Dec9_2022> {
                   const SizedBox(
                     height: 64,
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      handleMove(moves[_moveIndex], board);
-                    },
-                    child: const Text('Next move'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          handleMove(moves[_moveIndex], board);
+                        },
+                        child: const Text('Next move'),
+                      ),
+                      SizedBox(
+                        width: 16,
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          for (var i = _moveIndex; i < moves.length - 1; i++) {
+                            handleMove(moves[i], board);
+                          }
+                        },
+                        child: const Text('Run all'),
+                      ),
+                    ],
                   ),
                   const SizedBox(
                     height: 16,
@@ -560,6 +587,14 @@ class VisualBoard extends StatelessWidget {
               isStart: x == startX && y == startY);
         }),
       ),
+      ...trail.map((e) => Marker(
+            '',
+            kTrailColor,
+            boxSize: markerSize,
+            x: e.x,
+            y: e.y,
+            opacity: 0.5,
+          )),
       Marker(
         'T',
         kTailColor,
@@ -576,6 +611,7 @@ class VisualBoard extends StatelessWidget {
         y: hY,
         opacity: markerOpacity,
       ),
+
       /*   Marker(
         's',
         Colors.transparent,
