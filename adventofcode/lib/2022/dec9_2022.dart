@@ -2,7 +2,9 @@ import 'dart:math';
 import 'package:adventofcode/utils/load_utils.dart';
 import 'package:flutter/material.dart';
 
-enum OutputKind { general, tailMove, headMove, tailMoveSub, headMoveSub }
+enum OutputType { general, tailMove, headMove, tailSubMove, headSubMove }
+
+enum MoveType { head, tail }
 
 class Pos {
   Pos({
@@ -23,9 +25,9 @@ class Head {
 
 class Tail {
   Pos current;
-  List<Pos> posHistory = [];
-  List<Pos> posHistoryUnique = [];
-  int get uniqueCount => posHistoryUnique.length;
+  List<Pos> trail = [];
+  List<Pos> trailUnique = [];
+  int get uniqueCount => trailUnique.length;
 
   Tail({
     required this.current,
@@ -36,10 +38,10 @@ class MoveCmd {
   final String direction;
   final int distance;
   final bool isSubMove;
-  final bool isTailMove;
+  final MoveType type;
 
   MoveCmd(this.direction, this.distance,
-      {this.isSubMove = false, this.isTailMove = false})
+      {this.isSubMove = false, required this.type})
       : assert(direction == 'R' ||
             direction == 'L' ||
             direction == 'U' ||
@@ -54,6 +56,7 @@ class Board {
   Head h;
   Tail t;
   List<MoveCmd> headMoveHistory = [];
+
   Board({
     required this.h,
     required this.t,
@@ -96,8 +99,8 @@ class Board {
     }
 
     // Add to history
-    t.posHistory.add(t.current);
-    t.posHistoryUnique = t.posHistory.toSet().toList();
+    t.trail.add(Pos(x: t.current.x, y: t.current.y));
+    t.trailUnique = t.trail.toSet().toList();
   }
 
   TailMoves getTailMoves() {
@@ -114,16 +117,16 @@ class Board {
 
     // Tail move logic
     TailMoves tailMoves = TailMoves();
-    if (xDist > 1) {
-      tailMoves.moves.add(MoveCmd('L', xDist - 1, isTailMove: true));
-    } else if (xDist < -1) {
-      tailMoves.moves.add(MoveCmd('R', -xDist - 1, isTailMove: true));
-    }
 
+    if (xDist > 1) {
+      tailMoves.moves.add(MoveCmd('R', 1, type: MoveType.tail));
+    } else if (xDist < -1) {
+      tailMoves.moves.add(MoveCmd('L', 1, type: MoveType.tail));
+    }
     if (yDist > 1) {
-      tailMoves.moves.add(MoveCmd('D', yDist - 1, isTailMove: true));
+      tailMoves.moves.add(MoveCmd('D', 1, type: MoveType.tail));
     } else if (yDist < -1) {
-      tailMoves.moves.add(MoveCmd('U', -yDist - 1, isTailMove: true));
+      tailMoves.moves.add(MoveCmd('U', 1, type: MoveType.tail));
     }
 
     return tailMoves;
@@ -131,6 +134,8 @@ class Board {
 }
 
 const day = 9;
+const kHeadColor = Colors.green;
+const kTailColor = Colors.red;
 
 class Dec9_2022 extends StatefulWidget {
   const Dec9_2022({super.key});
@@ -141,7 +146,8 @@ class Dec9_2022 extends StatefulWidget {
 class _Dec9_2022State extends State<Dec9_2022> {
   String sampleStr = "";
   String inputStr = "";
-  List<Widget> outputs = <Widget>[];
+  List<Widget> headOutputs = <Widget>[];
+  List<Widget> tailOutputs = <Widget>[];
   List<String> moveCmdStrs = [];
   List<MoveCmd> moves = [];
   int startX = 25;
@@ -156,12 +162,13 @@ class _Dec9_2022State extends State<Dec9_2022> {
         moveCmdStrs = sampleStr.split('\n');
         moves = moveCmdStrs.map((e) {
           var parts = e.split(' ');
-          return MoveCmd(parts[0], int.parse(parts[1]));
+          return MoveCmd(parts[0], int.parse(parts[1]), type: MoveType.head);
         }).toList();
         board = Board(
           h: Head(current: Pos(x: startX, y: startY)),
           t: Tail(current: Pos(x: startX, y: startY)),
         );
+        board.t.trail = [Pos(x: startX, y: startY)];
       });
     });
 
@@ -176,37 +183,44 @@ class _Dec9_2022State extends State<Dec9_2022> {
   void handleMove(MoveCmd move, Board board) {
     if (_moveIndex >= moves.length - 1) return;
 
-    switch (move.distance == 1) {
-      case true:
-        switch (move.isTailMove) {
+    switch (move.type) {
+      case MoveType.head:
+        switch (move.isSubMove) {
           case false:
+            for (var i = 0; i < move.distance; i++) {
+              MoveCmd _oneStepMove = MoveCmd(move.direction, 1,
+                  type: MoveType.head, isSubMove: true);
+              // Insert moves after current move in list
+              moves.insert(_moveIndex + 1, _oneStepMove);
+            }
+            addToOutput(move.direction, move.distance,
+                type: OutputType.headMove);
+            break;
+          case true:
             board.moveHead(move);
             final tailMoves = board.getTailMoves();
             for (var tailMove in tailMoves.moves) {
               moves.insert(_moveIndex + 1, tailMove);
             }
-            if (!move.isSubMove)
-              addToOutput(move.direction, move.distance,
-                  type: OutputKind.headMove);
-            if (move.isSubMove)
-              addToOutput('    ${move.direction}', move.distance,
-                  type: OutputKind.headMove);
-            break;
-          case true:
-            board.moveTail(move);
-            if (move.isSubMove)
-              addToOutput('    ${move.direction}', move.distance);
+            addToOutput('    ${move.direction}', move.distance,
+                type: OutputType.headSubMove);
+
             break;
         }
         break;
-      case false:
-        for (var i = 0; i < move.distance; i++) {
-          MoveCmd _oneStepMove = MoveCmd(move.direction, 1, isSubMove: true);
-          // Insert moves after current move in list
-          moves.insert(_moveIndex + 1, _oneStepMove);
-        }
+      case MoveType.tail:
+        board.moveTail(move);
+        addToOutput(move.direction, move.distance, type: OutputType.tailMove);
+
         break;
     }
+    // If next move in list is a tail move, schedule it after a delay
+    /*   if (moves[_moveIndex + 1].type == MoveType.tail) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        handleMove(moves[_moveIndex + 1], board);
+      });
+    } */
+
     setState(() {
       _moveIndex++;
     });
@@ -219,18 +233,39 @@ class _Dec9_2022State extends State<Dec9_2022> {
       _moveIndex = 0;
       moves = moveCmdStrs.map((e) {
         var parts = e.split(' ');
-        return MoveCmd(parts[0], int.parse(parts[1]));
+        return MoveCmd(parts[0], int.parse(parts[1]), type: MoveType.head);
       }).toList();
-      outputs = [];
+      headOutputs = [];
+      tailOutputs = [];
+      board.t.trail = [Pos(x: startX, y: startY)];
     });
   }
 
   void addToOutput(String varName, dynamic val,
-      {OutputKind type = OutputKind.general}) {
+      {OutputType type = OutputType.general}) {
     setState(() {
-      Widget _output = Text('$varName: $val');
+      switch (type) {
+        case OutputType.general:
+          // _output = Text('$varName: $val');
+          break;
+        case OutputType.headMove:
+          headOutputs.add(Text('$varName: $val',
+              style: const TextStyle(color: kHeadColor)));
+          break;
+        case OutputType.headSubMove:
+          headOutputs.add(Text('  $varName: $val',
+              style: const TextStyle(color: kHeadColor)));
+          break;
+        case OutputType.tailMove:
+          tailOutputs.add(Text('$varName: $val',
+              style: const TextStyle(color: kTailColor)));
+          break;
 
-      outputs.add(_output);
+        case OutputType.tailSubMove:
+          tailOutputs.add(Text('$varName: $val',
+              style: const TextStyle(color: kTailColor)));
+          break;
+      }
     });
   }
 
@@ -271,6 +306,8 @@ class _Dec9_2022State extends State<Dec9_2022> {
     if (_isEndOfGame) {
       addToOutput('Done', '');
     }
+
+    double _outputListHeights = MediaQuery.of(context).size.height * 0.5;
     return Padding(
       padding: const EdgeInsets.all(32.0),
       child: Row(
@@ -279,7 +316,7 @@ class _Dec9_2022State extends State<Dec9_2022> {
             width: 300,
             child: Padding(
               padding: const EdgeInsets.only(right: 32.0, top: 64),
-              child: ListView(
+              child: Column(
                 children: [
                   const Text(
                     'Dec $day',
@@ -325,12 +362,92 @@ class _Dec9_2022State extends State<Dec9_2022> {
                   const SizedBox(
                     height: 32,
                   ),
-                  ListView(
-                    shrinkWrap: true,
+                  Row(
                     children: [
-                      ...outputs,
-                      const SizedBox(
-                        height: 32,
+                      Expanded(
+                        child: SizedBox(
+                          height: _outputListHeights,
+                          child: ListView(
+                            shrinkWrap: true,
+                            children: [
+                              Text('Queue: '),
+                              ...moves.map((e) => Text(
+                                  '${e.type.name[0]} - ${e.direction}: ${e.distance}',
+                                  style: TextStyle(
+                                    fontWeight: _moveIndex > 0 &&
+                                            e == moves[_moveIndex - 1]
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: _moveIndex > 0 &&
+                                            e == moves[_moveIndex - 1]
+                                        ? Colors.white
+                                        : Colors.grey,
+                                  ))),
+                              const SizedBox(
+                                height: 32,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: SizedBox(
+                          height: _outputListHeights,
+                          child: ListView(
+                            shrinkWrap: true,
+                            children: [
+                              Text('Head:'),
+                              ...headOutputs,
+                              const SizedBox(
+                                height: 32,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: SizedBox(
+                          height: _outputListHeights,
+                          child: ListView(
+                            shrinkWrap: true,
+                            children: [
+                              Text('Tail:'),
+                              ...tailOutputs,
+                              const SizedBox(
+                                height: 32,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: SizedBox(
+                          height: _outputListHeights,
+                          child: ListView(
+                            shrinkWrap: true,
+                            children: [
+                              Text('Trail:'),
+                              ...board.t.trail.map(
+                                (e) => Text(
+                                  'x${e.x} y${e.y}',
+                                  style: TextStyle(
+                                    fontWeight: board.t.current.x == e.x &&
+                                            board.t.current.y == e.y
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: board.t.current.x == e.x &&
+                                            board.t.current.y == e.y
+                                        ? Colors.white
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 32,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   )
@@ -349,8 +466,9 @@ class _Dec9_2022State extends State<Dec9_2022> {
                   tY: board.t.current.y,
                   hX: board.h.current.x,
                   hY: board.h.current.y,
-                  sX: startX,
-                  sY: startY,
+                  startX: startX,
+                  startY: startY,
+                  trail: board.t.trailUnique,
                 ),
               ),
             ),
@@ -366,22 +484,22 @@ class VisualBoard extends StatelessWidget {
   final int tY;
   final int hX;
   final int hY;
-  final int sY;
-  final int sX;
+
   final int startX;
   final int startY;
 
-  const VisualBoard(
-      {Key? key,
-      this.tX = 0,
-      this.tY = 0,
-      this.hX = 0,
-      this.hY = 0,
-      this.sX = 0,
-      this.sY = 0,
-      this.startX = 0,
-      this.startY = 0})
-      : super(key: key);
+  final List<Pos> trail;
+
+  const VisualBoard({
+    Key? key,
+    this.tX = 0,
+    this.tY = 0,
+    this.hX = 0,
+    this.hY = 0,
+    this.startX = 0,
+    this.startY = 0,
+    required this.trail,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -410,7 +528,7 @@ class VisualBoard extends StatelessWidget {
       ),
       Marker(
         'T',
-        Colors.blue,
+        kTailColor,
         boxSize: markerSize,
         x: tX,
         y: tY,
@@ -418,7 +536,7 @@ class VisualBoard extends StatelessWidget {
       ),
       Marker(
         'H',
-        Colors.red,
+        kHeadColor,
         boxSize: markerSize,
         x: hX,
         y: hY,
@@ -471,7 +589,8 @@ class Marker extends StatelessWidget {
   static const double padding = 2;
   @override
   Widget build(BuildContext context) {
-    return Positioned(
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 100),
       left: x * boxSize,
       top: y * boxSize,
       child: Padding(
