@@ -31,22 +31,25 @@ class Tail {
 }
 
 class MoveCmd {
-  late String direction;
-  late int distance;
+  final String direction;
+  final int distance;
+  final bool isSubMove;
 
-  MoveCmd(
-    this.direction,
-    this.distance,
-  ) : assert(direction == 'R' ||
+  MoveCmd(this.direction, this.distance, {this.isSubMove = false})
+      : assert(direction == 'R' ||
             direction == 'L' ||
             direction == 'U' ||
             direction == 'D');
 }
 
+class TailMoves {
+  final List<MoveCmd> moves = [];
+}
+
 class Board {
   Head h;
   Tail t;
-  List<MoveCmd> moveHistory = [];
+  List<MoveCmd> headMoveHistory = [];
   Board({
     required this.h,
     required this.t,
@@ -61,18 +64,18 @@ class Board {
         h.current.x -= move.distance;
         break;
       case 'U':
-        h.current.y += move.distance;
-        break;
-      case 'D':
         h.current.y -= move.distance;
         break;
+      case 'D':
+        h.current.y += move.distance;
+        break;
     }
-    moveTailMaybe();
+
     // Add to history
-    moveHistory.add(move);
+    headMoveHistory.add(move);
   }
 
-  void moveTailMaybe() {
+  TailMoves? shouldTailMove() {
     // Check distance to head
 
     var hX = h.current.x;
@@ -81,12 +84,10 @@ class Board {
     var tY = t.current.y;
 
     // Distance in grid
-    var distX = (hX - tX).abs();
-    var distY = (hY - tY).abs();
-    var dist = distX + distY;
-    print('distX $distX distY $distY dist $dist');
 
     // If distance is more than 1, move tail like end of rope
+
+    return null;
   }
 }
 
@@ -101,8 +102,12 @@ class Dec9_2022 extends StatefulWidget {
 class _Dec9_2022State extends State<Dec9_2022> {
   String sampleStr = "";
   String inputStr = "";
+  var outputs = <String>[];
   List<String> moveCmdStrs = [];
   List<MoveCmd> moves = [];
+  int startX = 25;
+  int startY = 25;
+  late Board board;
 
   @override
   void initState() {
@@ -114,6 +119,10 @@ class _Dec9_2022State extends State<Dec9_2022> {
           var parts = e.split(' ');
           return MoveCmd(parts[0], int.parse(parts[1]));
         }).toList();
+        board = Board(
+          h: Head(current: Pos(x: startX, y: startY)),
+          t: Tail(current: Pos(x: startX, y: startY)),
+        );
       });
     });
 
@@ -125,49 +134,48 @@ class _Dec9_2022State extends State<Dec9_2022> {
     super.initState();
   }
 
-/* 
-R 4
-U 4
-L 3
-D 1
-R 4
-D 1
-L 5
-R 2
+  void handleMove(MoveCmd move, Board board) {
+    if (_moveIndex >= moves.length - 1) return;
+    if (!move.isSubMove) addToOutput(move.direction, move.distance);
+    if (move.isSubMove) addToOutput('    ${move.direction}', move.distance);
 
-
-......
-......
-......
-......
-H.....     (H covers T, s)
-
- */
-
-  void handleMove(MoveCmd cmd, Board board) {
-    if (cmd.distance > 1) {
-      for (var i = 0; i < cmd.distance; i++) {
-        MoveCmd _oneStepMove = MoveCmd(cmd.direction, 1);
-        board.moveHead(_oneStepMove);
+    if (move.distance == 1) {
+      board.moveHead(move);
+    } else if (move.distance > 1) {
+      for (var i = 0; i < move.distance; i++) {
+        MoveCmd _oneStepMove = MoveCmd(move.direction, 1, isSubMove: true);
+        // Insert moves after current move in list
+        moves.insert(_moveIndex + 1, _oneStepMove);
       }
-    } else {
-      board.moveHead(cmd);
     }
+    setState(() {
+      _moveIndex++;
+    });
   }
 
-  int _moveIndex = -1;
-  void nextMove() {
-    _moveIndex++;
+  int _moveIndex = 0;
+
+  void restart() {
+    setState(() {
+      _moveIndex = 0;
+      moves = moveCmdStrs.map((e) {
+        var parts = e.split(' ');
+        return MoveCmd(parts[0], int.parse(parts[1]));
+      }).toList();
+      outputs = [];
+    });
+  }
+
+  void addToOutput(String varName, dynamic val) {
+    setState(() {
+      outputs.add('$varName $val');
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     var sample = sampleStr;
     var input = inputStr;
-    var outputs = <String>[];
-    void addToOutput(List<String> list, String varName, dynamic val) {
-      list.add('$varName $val');
-    }
 
     if (sample.isEmpty) {
       return const Text('No input');
@@ -177,11 +185,6 @@ H.....     (H covers T, s)
       var parts = e.split(' ');
       return MoveCmd(parts[0], int.parse(parts[1]));
     }).toList(); */
-
-    var board = Board(
-      h: Head(current: Pos(x: 0, y: 0)),
-      t: Tail(current: Pos(x: 0, y: 0)),
-    );
 
     /*   for (var move in moves) {
       if (move.distance > 1) {
@@ -195,50 +198,104 @@ H.....     (H covers T, s)
     } */
 
     // outputs
-    board.moveHistory.forEach((element) {
-      addToOutput(outputs, 'Movehistory of board:',
-          '${element.direction} ${element.distance}');
-    });
+    /* board.moveHistory.forEach((element) {
+      addToOutput(
+          'Movehistory of board:', '${element.direction} ${element.distance}');
+    }); */
 
-    outputs.add('Unique positions in trail: ${board.t.uniqueCount}');
-
+    bool _isGameStarted = _moveIndex > 0;
+    bool _isEndOfGame = _moveIndex >= moves.length - 1;
+    // outputs.add('Unique positions in trail: ${board.t.uniqueCount}');
+    if (_isEndOfGame) {
+      addToOutput('Done', '');
+    }
     return Padding(
       padding: const EdgeInsets.all(32.0),
-      child: ListView(
+      child: Row(
         children: [
-          const Text(
-            'Dec $day',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 32),
+          Container(
+            width: 300,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 32.0, top: 64),
+              child: ListView(
+                children: [
+                  const Text(
+                    'Dec $day',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 32),
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  const Text(
+                    '🪢',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 40),
+                  ),
+                  const SizedBox(
+                    height: 64,
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      handleMove(moves[_moveIndex], board);
+                    },
+                    child: const Text('Next move'),
+                  ),
+                  const SizedBox(
+                    height: 32,
+                  ),
+                  ElevatedButton(
+                    onPressed: !_isGameStarted
+                        ? null
+                        : () {
+                            setState(() {
+                              restart();
+                              board = Board(
+                                h: Head(current: Pos(x: startX, y: startY)),
+                                t: Tail(current: Pos(x: startX, y: startY)),
+                              );
+                            });
+                          },
+                    child: Text(
+                      'Restart',
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 32,
+                  ),
+                  ListView(
+                    shrinkWrap: true,
+                    children: [
+                      ...outputs.map((e) => Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: SelectableText(e),
+                          )),
+                      const SizedBox(
+                        height: 32,
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
           ),
-          const SizedBox(
-            height: 20,
+          Expanded(
+            flex: 7,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 64.0),
+                child: VisualBoard(
+                  tX: board.t.current.x,
+                  tY: board.t.current.y,
+                  hX: board.h.current.x,
+                  hY: board.h.current.y,
+                  sX: startX,
+                  sY: startY,
+                ),
+              ),
+            ),
           ),
-          const Text(
-            '🪢',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 40),
-          ),
-          const SizedBox(
-            height: 64,
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                nextMove();
-                handleMove(moves[_moveIndex], board);
-              });
-            },
-            child: const Text('Next move'),
-          ),
-          ...outputs.map((e) => Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: SelectableText(e),
-              )),
-          const SizedBox(
-            height: 32,
-          ),
-          VisualBoard(),
         ],
       ),
     );
@@ -246,44 +303,90 @@ H.....     (H covers T, s)
 }
 
 class VisualBoard extends StatelessWidget {
-  const VisualBoard({super.key});
+  final int tX;
+  final int tY;
+  final int hX;
+  final int hY;
+  final int sY;
+  final int sX;
+  final int startX;
+  final int startY;
+
+  const VisualBoard(
+      {Key? key,
+      this.tX = 0,
+      this.tY = 0,
+      this.hX = 0,
+      this.hY = 0,
+      this.sX = 0,
+      this.sY = 0,
+      this.startX = 0,
+      this.startY = 0})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    double brdWidth = MediaQuery.of(context).size.width;
-    double brdHeight = MediaQuery.of(context).size.height;
+    double brdWidth = MediaQuery.of(context).size.width - 64 - 300;
     int xSquareCount = 50;
-    int ySquareCount = 50;
+    int ySquareCount = xSquareCount;
     double squareSize = brdWidth / xSquareCount;
-    double markerSize = squareSize + 2;
+    double markerSize = squareSize;
     int gridWidth = 50;
     int gridHeight = gridWidth;
-    int boxCount = gridWidth * gridHeight;
+    int boxCount = xSquareCount * ySquareCount;
+    double markerOpacity = 1;
     return Stack(children: [
       GridView.count(
-        crossAxisCount: gridWidth,
+        crossAxisCount: xSquareCount,
         shrinkWrap: true,
         children: List.generate(boxCount, (index) {
-          return GridBox(
-              size: squareSize, x: index % gridWidth, y: index ~/ gridWidth);
+          int x = index % gridWidth;
+          int y = index ~/ gridWidth;
+          return GridSquare(
+              size: squareSize,
+              x: x,
+              y: y,
+              isStart: x == startX && y == startY);
         }),
       ),
-      ...List.generate(gridWidth, (index) {
-        return Marker(
-          index.toString(),
-          Colors.blue,
-          boxSize: markerSize,
-          x: index,
-          y: 0,
-          opacity: 0.1,
-        );
-      }),
-      Container(
-        color: Colors.black12,
-        width: brdWidth,
-        height: brdHeight,
-      )
-      // Marker('T', Colors.red, boxSize: squareSize, x: 0, y: 0),
+      Marker(
+        'T',
+        Colors.blue,
+        boxSize: markerSize,
+        x: tX,
+        y: tY,
+        opacity: markerOpacity,
+      ),
+      Marker(
+        'H',
+        Colors.red,
+        boxSize: markerSize,
+        x: hX,
+        y: hY,
+        opacity: markerOpacity,
+      ),
+      /*   Marker(
+        's',
+        Colors.transparent,
+        boxSize: markerSize,
+        x: tX,
+        y: tY,
+        opacity: 0.5,
+      ), */
+
+      /* ...List.generate(
+        gridWidth,
+        (index) {
+          return Marker(
+            index.toString(),
+            Colors.blue,
+            boxSize: markerSize,
+            x: index,
+            y: 3,
+            opacity: 0.2,
+          );
+        },
+      ), */
     ]);
   }
 }
@@ -306,38 +409,46 @@ class Marker extends StatelessWidget {
   final int y;
   final double opacity;
 
+  static const double padding = 2;
   @override
   Widget build(BuildContext context) {
     return Positioned(
       left: x * boxSize,
       top: y * boxSize,
-      child: Opacity(
-        opacity: opacity,
+      child: Padding(
+        padding: const EdgeInsets.all(padding),
         child: Container(
-          width: boxSize,
-          height: boxSize,
+          width: boxSize - padding * 2,
+          height: boxSize - padding * 2,
           decoration: BoxDecoration(
-            color: color,
+            color: color.withOpacity(opacity),
             shape: BoxShape.circle,
           ),
-          child: Center(child: Text(text)),
+          child: Center(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 8),
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class GridBox extends StatelessWidget {
-  const GridBox({
+class GridSquare extends StatelessWidget {
+  const GridSquare({
     Key? key,
     required this.size,
     required this.x,
     required this.y,
+    this.isStart = false,
   }) : super(key: key);
 
   final double size;
-  final x;
-  final y;
+  final int x;
+  final int y;
+  final bool isStart;
 
   @override
   Widget build(BuildContext context) {
@@ -351,12 +462,7 @@ class GridBox extends StatelessWidget {
           width: 0.05,
         ),
       ),
-      /* child: Text(
-        '$x, $y',
-        style: TextStyle(
-          fontSize: 8,
-        ),
-      ), */
+      child: isStart ? const Center(child: Text('S')) : const SizedBox(),
     );
   }
 }
