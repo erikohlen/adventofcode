@@ -1,7 +1,12 @@
+import 'dart:io';
 import 'dart:math';
-
 import 'package:adventofcode/utils/load_utils.dart';
+import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+
+enum Direction { TopDown, BottomUp, LeftRight, RightLeft }
 
 const day = 8;
 
@@ -24,8 +29,6 @@ class Tree {
   int right = 0;
   int get totalView => top * down * left * right;
 }
-
-enum Direction { TopDown, BottomUp, LeftRight, RightLeft }
 
 class Dec8_2022 extends StatefulWidget {
   const Dec8_2022({super.key});
@@ -82,10 +85,6 @@ class _Dec8_2022State extends State<Dec8_2022> {
         trees.add(Tree(x: j, y: i, isOuter: isOuter, isVisible: isOuter));
       }
     }
-    trees.forEach((element) {
-      var x = element.x;
-      var y = element.y;
-    });
 
     List<int> strToListInts(String str) {
       return str.split('').map((e) => int.parse(e)).toList();
@@ -181,7 +180,7 @@ class _Dec8_2022State extends State<Dec8_2022> {
           int iTreeHeight = int.parse(rows[iy][ix]);
           var tree =
               trees.firstWhere((element) => element.x == ix && element.y == iy);
-
+          tree.treeHeight = iTreeHeight;
           // Check top
           var topCol = strToListInts(cols[ix]).sublist(0, iy);
           topCol = topCol.reversed.toList();
@@ -227,7 +226,19 @@ class _Dec8_2022State extends State<Dec8_2022> {
     int maxTotalView = trees.map((Tree e) => e.totalView).toList().reduce(max);
     addToOutput(outputs, 'maxTotalView', maxTotalView);
 
-    // First guess - 1792 is too high. But right for someone else
+    // OUTPUT TO CSV
+
+    List<List<int>> treeGridInts =
+        treeGrid.map((e) => e.map((e) => e.treeHeight).toList()).toList();
+    String csv = const ListToCsvConverter().convert(treeGridInts);
+
+    void _saveCSV() async {
+      await Clipboard.setData(ClipboardData(text: csv));
+      /* final directory = await getApplicationDocumentsDirectory();
+      final pathOfTheFileToWrite = directory.path + "/myCsvFile.csv";
+      File file = await File(pathOfTheFileToWrite);
+      file.writeAsString(csv); */
+    }
 
     return Padding(
       padding: const EdgeInsets.all(32.0),
@@ -243,10 +254,11 @@ class _Dec8_2022State extends State<Dec8_2022> {
             height: 20,
           ),
           const Text(
-            '🗂',
+            '🎄',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 40),
           ),
+          OutlinedButton(onPressed: _saveCSV, child: Text('Save CSV')),
           const SizedBox(
             height: 64,
           ),

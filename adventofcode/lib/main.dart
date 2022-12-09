@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:adventofcode/2021/dec1_2021.dart';
+import 'package:adventofcode/2022/dec9_2022.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -40,6 +41,7 @@ class MyApp extends StatelessWidget {
         //backgroundColor: Colors.black54,
         body: PageView(
           children: const [
+            Dec9_2022(),
             Dec8_2022(),
             Dec7_2022(),
             Dec6_2022(),
