@@ -2,6 +2,8 @@ import 'dart:math';
 import 'package:adventofcode/utils/load_utils.dart';
 import 'package:flutter/material.dart';
 
+enum OutputKind { general, tailMove, headMove, tailMoveSub, headMoveSub }
+
 class Pos {
   Pos({
     required this.x,
@@ -34,8 +36,10 @@ class MoveCmd {
   final String direction;
   final int distance;
   final bool isSubMove;
+  final bool isTailMove;
 
-  MoveCmd(this.direction, this.distance, {this.isSubMove = false})
+  MoveCmd(this.direction, this.distance,
+      {this.isSubMove = false, this.isTailMove = false})
       : assert(direction == 'R' ||
             direction == 'L' ||
             direction == 'U' ||
@@ -75,19 +79,54 @@ class Board {
     headMoveHistory.add(move);
   }
 
-  TailMoves? shouldTailMove() {
+  void moveTail(MoveCmd move) {
+    switch (move.direction) {
+      case 'R':
+        t.current.x += move.distance;
+        break;
+      case 'L':
+        t.current.x -= move.distance;
+        break;
+      case 'U':
+        t.current.y -= move.distance;
+        break;
+      case 'D':
+        t.current.y += move.distance;
+        break;
+    }
+
+    // Add to history
+    t.posHistory.add(t.current);
+    t.posHistoryUnique = t.posHistory.toSet().toList();
+  }
+
+  TailMoves getTailMoves() {
     // Check distance to head
 
-    var hX = h.current.x;
-    var hY = h.current.y;
-    var tX = t.current.x;
-    var tY = t.current.y;
+    int hX = h.current.x;
+    int hY = h.current.y;
+    int tX = t.current.x;
+    int tY = t.current.y;
 
     // Distance in grid
+    int xDist = hX - tX;
+    int yDist = hY - tY;
 
-    // If distance is more than 1, move tail like end of rope
+    // Tail move logic
+    TailMoves tailMoves = TailMoves();
+    if (xDist > 1) {
+      tailMoves.moves.add(MoveCmd('L', xDist - 1, isTailMove: true));
+    } else if (xDist < -1) {
+      tailMoves.moves.add(MoveCmd('R', -xDist - 1, isTailMove: true));
+    }
 
-    return null;
+    if (yDist > 1) {
+      tailMoves.moves.add(MoveCmd('D', yDist - 1, isTailMove: true));
+    } else if (yDist < -1) {
+      tailMoves.moves.add(MoveCmd('U', -yDist - 1, isTailMove: true));
+    }
+
+    return tailMoves;
   }
 }
 
@@ -102,7 +141,7 @@ class Dec9_2022 extends StatefulWidget {
 class _Dec9_2022State extends State<Dec9_2022> {
   String sampleStr = "";
   String inputStr = "";
-  var outputs = <String>[];
+  List<Widget> outputs = <Widget>[];
   List<String> moveCmdStrs = [];
   List<MoveCmd> moves = [];
   int startX = 25;
@@ -136,17 +175,37 @@ class _Dec9_2022State extends State<Dec9_2022> {
 
   void handleMove(MoveCmd move, Board board) {
     if (_moveIndex >= moves.length - 1) return;
-    if (!move.isSubMove) addToOutput(move.direction, move.distance);
-    if (move.isSubMove) addToOutput('    ${move.direction}', move.distance);
 
-    if (move.distance == 1) {
-      board.moveHead(move);
-    } else if (move.distance > 1) {
-      for (var i = 0; i < move.distance; i++) {
-        MoveCmd _oneStepMove = MoveCmd(move.direction, 1, isSubMove: true);
-        // Insert moves after current move in list
-        moves.insert(_moveIndex + 1, _oneStepMove);
-      }
+    switch (move.distance == 1) {
+      case true:
+        switch (move.isTailMove) {
+          case false:
+            board.moveHead(move);
+            final tailMoves = board.getTailMoves();
+            for (var tailMove in tailMoves.moves) {
+              moves.insert(_moveIndex + 1, tailMove);
+            }
+            if (!move.isSubMove)
+              addToOutput(move.direction, move.distance,
+                  type: OutputKind.headMove);
+            if (move.isSubMove)
+              addToOutput('    ${move.direction}', move.distance,
+                  type: OutputKind.headMove);
+            break;
+          case true:
+            board.moveTail(move);
+            if (move.isSubMove)
+              addToOutput('    ${move.direction}', move.distance);
+            break;
+        }
+        break;
+      case false:
+        for (var i = 0; i < move.distance; i++) {
+          MoveCmd _oneStepMove = MoveCmd(move.direction, 1, isSubMove: true);
+          // Insert moves after current move in list
+          moves.insert(_moveIndex + 1, _oneStepMove);
+        }
+        break;
     }
     setState(() {
       _moveIndex++;
@@ -166,9 +225,12 @@ class _Dec9_2022State extends State<Dec9_2022> {
     });
   }
 
-  void addToOutput(String varName, dynamic val) {
+  void addToOutput(String varName, dynamic val,
+      {OutputKind type = OutputKind.general}) {
     setState(() {
-      outputs.add('$varName $val');
+      Widget _output = Text('$varName: $val');
+
+      outputs.add(_output);
     });
   }
 
@@ -266,10 +328,7 @@ class _Dec9_2022State extends State<Dec9_2022> {
                   ListView(
                     shrinkWrap: true,
                     children: [
-                      ...outputs.map((e) => Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: SelectableText(e),
-                          )),
+                      ...outputs,
                       const SizedBox(
                         height: 32,
                       ),
