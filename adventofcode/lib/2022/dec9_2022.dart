@@ -114,21 +114,63 @@ class Board {
     // Distance in grid
     int xDist = hX - tX;
     int yDist = hY - tY;
+    List<int> dist = [xDist, yDist];
 
     // Tail move logic
     TailMoves tailMoves = TailMoves();
+    print('----------------------------');
+    print('xDist: $xDist');
+    print('yDist: $yDist');
+    print('dist: $dist');
+    print(dist.runtimeType);
+    print([xDist, yDist].runtimeType);
 
-    if (xDist > 1) {
-      tailMoves.moves.add(MoveCmd('R', 1, type: MoveType.tail));
-    } else if (xDist < -1) {
+    // Diagnonally top left
+    if ((xDist == -1 && yDist == -2) || (xDist == -2 && yDist == -1)) {
+      print('something');
       tailMoves.moves.add(MoveCmd('L', 1, type: MoveType.tail));
-    }
-    if (yDist > 1) {
-      tailMoves.moves.add(MoveCmd('D', 1, type: MoveType.tail));
-    } else if (yDist < -1) {
       tailMoves.moves.add(MoveCmd('U', 1, type: MoveType.tail));
     }
-
+    // Diagnonally top right
+    if ((xDist == 1 && yDist == -2) || (xDist == 2 && yDist == -1)) {
+      print('something');
+      tailMoves.moves.add(MoveCmd('R', 1, type: MoveType.tail));
+      tailMoves.moves.add(MoveCmd('U', 1, type: MoveType.tail));
+    }
+    // Diagnonally down right
+    if ((xDist == 1 && yDist == 2) || (xDist == 2 && yDist == 1)) {
+      print('something');
+      tailMoves.moves.add(MoveCmd('D', 1, type: MoveType.tail));
+      tailMoves.moves.add(MoveCmd('R', 1, type: MoveType.tail));
+    }
+    // Diagnonally down left
+    if ((xDist == -1 && yDist == 2) || (xDist == -2 && yDist == 1)) {
+      print('something');
+      tailMoves.moves.add(MoveCmd('D', 1, type: MoveType.tail));
+      tailMoves.moves.add(MoveCmd('L', 1, type: MoveType.tail));
+    }
+    // Straight up
+    if ((xDist == 1 && yDist == 2) || (xDist == 2 && yDist == 1)) if (dist ==
+        [0, -2]) {
+      print('something');
+      tailMoves.moves.add(MoveCmd('U', 1, type: MoveType.tail));
+    }
+    // Straight right
+    if (xDist == 2 && yDist == 0) {
+      print('move right tail!');
+      tailMoves.moves.add(MoveCmd('R', 1, type: MoveType.tail));
+    }
+    // Straight down
+    if (xDist == 0 && yDist == 2) {
+      print('something');
+      tailMoves.moves.add(MoveCmd('D', 1, type: MoveType.tail));
+    }
+    // Straight left
+    if (xDist == -2 && yDist == 0) {
+      print('something');
+      tailMoves.moves.add(MoveCmd('L', 1, type: MoveType.tail));
+    }
+    print('These are the tail moves: ${tailMoves.moves}');
     return tailMoves;
   }
 }
@@ -209,6 +251,7 @@ class _Dec9_2022State extends State<Dec9_2022> {
         }
         break;
       case MoveType.tail:
+        print('is tail move!');
         board.moveTail(move);
         addToOutput(move.direction, move.distance, type: OutputType.tailMove);
 
@@ -278,36 +321,18 @@ class _Dec9_2022State extends State<Dec9_2022> {
       return const Text('No input');
     }
 
-    /* var moves = moveCmdStrs.map((e) {
-      var parts = e.split(' ');
-      return MoveCmd(parts[0], int.parse(parts[1]));
-    }).toList(); */
+    //! PART 1 ANSWER
+    // Get number of unique posiitons in trail
+    var uniquePositions = board.t.trail.toSet().length;
 
-    /*   for (var move in moves) {
-      if (move.distance > 1) {
-        for (var i = 0; i < move.distance; i++) {
-          MoveCmd _oneStepMove = MoveCmd(move.direction, 1);
-          board.moveHead(_oneStepMove);
-        }
-      } else {
-        board.moveHead(move);
-      }
-    } */
+    int _part1Answer = uniquePositions;
 
-    // outputs
-    /* board.moveHistory.forEach((element) {
-      addToOutput(
-          'Movehistory of board:', '${element.direction} ${element.distance}');
-    }); */
+    //! PART 2 ANSWER
 
     bool _isGameStarted = _moveIndex > 0;
     bool _isEndOfGame = _moveIndex >= moves.length - 1;
-    // outputs.add('Unique positions in trail: ${board.t.uniqueCount}');
-    if (_isEndOfGame) {
-      addToOutput('Done', '');
-    }
 
-    double _outputListHeights = MediaQuery.of(context).size.height * 0.5;
+    double _outputListHeights = MediaQuery.of(context).size.height * 0.4;
     return Padding(
       padding: const EdgeInsets.all(32.0),
       child: Row(
@@ -341,7 +366,7 @@ class _Dec9_2022State extends State<Dec9_2022> {
                     child: const Text('Next move'),
                   ),
                   const SizedBox(
-                    height: 32,
+                    height: 16,
                   ),
                   ElevatedButton(
                     onPressed: !_isGameStarted
@@ -361,6 +386,15 @@ class _Dec9_2022State extends State<Dec9_2022> {
                   ),
                   const SizedBox(
                     height: 32,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Row(
+                      children: [
+                        Text('Visited by tail: '),
+                        Text('$_part1Answer'),
+                      ],
+                    ),
                   ),
                   Row(
                     children: [
