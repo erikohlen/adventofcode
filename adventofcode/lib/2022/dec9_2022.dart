@@ -250,7 +250,12 @@ class VisualBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double boxSize = 16;
+    double brdWidth = MediaQuery.of(context).size.width;
+    double brdHeight = MediaQuery.of(context).size.height;
+    int xSquareCount = 50;
+    int ySquareCount = 50;
+    double squareSize = brdWidth / xSquareCount;
+    double markerSize = squareSize + 2;
     int gridWidth = 50;
     int gridHeight = gridWidth;
     int boxCount = gridWidth * gridHeight;
@@ -260,11 +265,25 @@ class VisualBoard extends StatelessWidget {
         shrinkWrap: true,
         children: List.generate(boxCount, (index) {
           return GridBox(
-              size: boxSize, x: index % gridWidth, y: index ~/ gridWidth);
+              size: squareSize, x: index % gridWidth, y: index ~/ gridWidth);
         }),
       ),
-      Marker('H', Colors.blue, boxSize: boxSize, x: 7, y: 0),
-      Marker('T', Colors.red, boxSize: boxSize, x: 0, y: 0),
+      ...List.generate(gridWidth, (index) {
+        return Marker(
+          index.toString(),
+          Colors.blue,
+          boxSize: markerSize,
+          x: index,
+          y: 0,
+          opacity: 0.1,
+        );
+      }),
+      Container(
+        color: Colors.black12,
+        width: brdWidth,
+        height: brdHeight,
+      )
+      // Marker('T', Colors.red, boxSize: squareSize, x: 0, y: 0),
     ]);
   }
 }
@@ -277,6 +296,7 @@ class Marker extends StatelessWidget {
     required this.boxSize,
     required this.x,
     required this.y,
+    this.opacity = 1,
   }) : super(key: key);
 
   final String text;
@@ -284,20 +304,24 @@ class Marker extends StatelessWidget {
   final double boxSize;
   final int x;
   final int y;
+  final double opacity;
 
   @override
   Widget build(BuildContext context) {
     return Positioned(
       left: x * boxSize,
       top: y * boxSize,
-      child: Container(
-        width: boxSize,
-        height: boxSize,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
+      child: Opacity(
+        opacity: opacity,
+        child: Container(
+          width: boxSize,
+          height: boxSize,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+          child: Center(child: Text(text)),
         ),
-        child: Center(child: Text(text)),
       ),
     );
   }
@@ -323,16 +347,16 @@ class GridBox extends StatelessWidget {
       decoration: BoxDecoration(
         //color: Colors.white,
         border: Border.all(
-          color: Colors.black38,
-          width: 0.5,
+          color: Colors.white,
+          width: 0.05,
         ),
       ),
-      child: Text(
+      /* child: Text(
         '$x, $y',
         style: TextStyle(
           fontSize: 8,
         ),
-      ),
+      ), */
     );
   }
 }
