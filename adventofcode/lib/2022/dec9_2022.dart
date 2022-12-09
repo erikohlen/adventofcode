@@ -9,11 +9,6 @@ class Pos {
   });
   int x;
   int y;
-
-/*   // @override equal operator
-  bool operator ==(Object other) {
-    return other is Pos && other.x == x && other.y == y;
-  } */
 }
 
 class Head {
@@ -22,38 +17,17 @@ class Head {
   Head({
     required this.current,
   });
-
-  void printPos() {
-    print('Head - x: ${current.x}, y: ${current.y}');
-  }
 }
 
 class Tail {
   Pos current;
-  List<Pos> history = [];
+  List<Pos> posHistory = [];
+  List<Pos> posHistoryUnique = [];
+  int get uniqueCount => posHistoryUnique.length;
 
   Tail({
     required this.current,
   });
-
-  void printTrail() {
-    for (var pos in history) {
-      print('History - x: ${pos.x}, y: ${pos.y}');
-    }
-  }
-
-  void printPos() {
-    print('Tail - x: ${current.x}, y: ${current.y}');
-  }
-
-  // Count unique positions in trail (unique is same x and y)
-  int countUnique() {
-    var unique = <Pos>{};
-    for (var pos in history) {
-      unique.add(pos);
-    }
-    return unique.length;
-  }
 }
 
 class MoveCmd {
@@ -72,7 +46,7 @@ class MoveCmd {
 class Board {
   Head h;
   Tail t;
-
+  List<MoveCmd> moveHistory = [];
   Board({
     required this.h,
     required this.t,
@@ -93,42 +67,26 @@ class Board {
         h.current.y -= move.distance;
         break;
     }
-    h.printPos();
+    moveTailMaybe();
+    // Add to history
+    moveHistory.add(move);
   }
 
   void moveTailMaybe() {
     // Check distance to head
-    var dist = sqrt(
-        pow(h.current.x - t.current.x, 2) + pow(h.current.y - t.current.y, 2));
-    if (dist > 1) {
-      // Move tail
-      var dx = h.current.x - t.current.x;
-      var dy = h.current.y - t.current.y;
-      if (dx.abs() > dy.abs()) {
-        if (dx > 0) {
-          t.current.x += 1;
-        } else {
-          t.current.x -= 1;
-        }
-      } else {
-        if (dy > 0) {
-          t.current.y += 1;
-        } else {
-          t.current.y -= 1;
-        }
-      }
-    }
-    t.history.add(Pos(x: t.current.x, y: t.current.y));
-    t.printPos();
-  }
 
-  void printBoard() {
-    var board = List.generate(10, (index) => List.filled(10, ' '));
-    board[h.current.y][h.current.x] = 'H';
-    board[t.current.y][t.current.x] = 'T';
-    for (var row in board) {
-      print(row);
-    }
+    var hX = h.current.x;
+    var hY = h.current.y;
+    var tX = t.current.x;
+    var tY = t.current.y;
+
+    // Distance in grid
+    var distX = (hX - tX).abs();
+    var distY = (hY - tY).abs();
+    var dist = distX + distY;
+    print('distX $distX distY $distY dist $dist');
+
+    // If distance is more than 1, move tail like end of rope
   }
 }
 
@@ -143,12 +101,19 @@ class Dec9_2022 extends StatefulWidget {
 class _Dec9_2022State extends State<Dec9_2022> {
   String sampleStr = "";
   String inputStr = "";
+  List<String> moveCmdStrs = [];
+  List<MoveCmd> moves = [];
 
   @override
   void initState() {
     loadAssetFileAsString("2022_${day}_sample.txt").then((value) {
       setState(() {
         sampleStr = value;
+        moveCmdStrs = sampleStr.split('\n');
+        moves = moveCmdStrs.map((e) {
+          var parts = e.split(' ');
+          return MoveCmd(parts[0], int.parse(parts[1]));
+        }).toList();
       });
     });
 
@@ -179,6 +144,22 @@ H.....     (H covers T, s)
 
  */
 
+  void handleMove(MoveCmd cmd, Board board) {
+    if (cmd.distance > 1) {
+      for (var i = 0; i < cmd.distance; i++) {
+        MoveCmd _oneStepMove = MoveCmd(cmd.direction, 1);
+        board.moveHead(_oneStepMove);
+      }
+    } else {
+      board.moveHead(cmd);
+    }
+  }
+
+  int _moveIndex = -1;
+  void nextMove() {
+    _moveIndex++;
+  }
+
   @override
   Widget build(BuildContext context) {
     var sample = sampleStr;
@@ -188,34 +169,42 @@ H.....     (H covers T, s)
       list.add('$varName $val');
     }
 
-    var moveCmdStrs = sample.split('\n');
+    if (sample.isEmpty) {
+      return const Text('No input');
+    }
 
-    var moves = moveCmdStrs.map((e) {
-      print(e);
+    /* var moves = moveCmdStrs.map((e) {
       var parts = e.split(' ');
-      print(parts);
       return MoveCmd(parts[0], int.parse(parts[1]));
-    }).toList();
+    }).toList(); */
 
     var board = Board(
       h: Head(current: Pos(x: 0, y: 0)),
       t: Tail(current: Pos(x: 0, y: 0)),
     );
 
-    for (var move in moves) {
-      board.moveHead(move);
-      board.moveTailMaybe();
-    }
+    /*   for (var move in moves) {
+      if (move.distance > 1) {
+        for (var i = 0; i < move.distance; i++) {
+          MoveCmd _oneStepMove = MoveCmd(move.direction, 1);
+          board.moveHead(_oneStepMove);
+        }
+      } else {
+        board.moveHead(move);
+      }
+    } */
 
-    //board.printBoard();
+    // outputs
+    board.moveHistory.forEach((element) {
+      addToOutput(outputs, 'Movehistory of board:',
+          '${element.direction} ${element.distance}');
+    });
 
-    // print unique positions in trail
-    outputs.add('Unique positions in trail: ${board.t.countUnique()}');
+    outputs.add('Unique positions in trail: ${board.t.uniqueCount}');
 
     return Padding(
       padding: const EdgeInsets.all(32.0),
       child: ListView(
-        reverse: false,
         children: [
           const Text(
             'Dec $day',
@@ -233,11 +222,116 @@ H.....     (H covers T, s)
           const SizedBox(
             height: 64,
           ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                nextMove();
+                handleMove(moves[_moveIndex], board);
+              });
+            },
+            child: const Text('Next move'),
+          ),
           ...outputs.map((e) => Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: SelectableText(e),
               )),
+          const SizedBox(
+            height: 32,
+          ),
+          VisualBoard(),
         ],
+      ),
+    );
+  }
+}
+
+class VisualBoard extends StatelessWidget {
+  const VisualBoard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    double boxSize = 16;
+    int gridWidth = 50;
+    int gridHeight = gridWidth;
+    int boxCount = gridWidth * gridHeight;
+    return Stack(children: [
+      GridView.count(
+        crossAxisCount: gridWidth,
+        shrinkWrap: true,
+        children: List.generate(boxCount, (index) {
+          return GridBox(
+              size: boxSize, x: index % gridWidth, y: index ~/ gridWidth);
+        }),
+      ),
+      Marker('H', Colors.blue, boxSize: boxSize, x: 7, y: 0),
+      Marker('T', Colors.red, boxSize: boxSize, x: 0, y: 0),
+    ]);
+  }
+}
+
+class Marker extends StatelessWidget {
+  const Marker(
+    this.text,
+    this.color, {
+    Key? key,
+    required this.boxSize,
+    required this.x,
+    required this.y,
+  }) : super(key: key);
+
+  final String text;
+  final Color color;
+  final double boxSize;
+  final int x;
+  final int y;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: x * boxSize,
+      top: y * boxSize,
+      child: Container(
+        width: boxSize,
+        height: boxSize,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+        ),
+        child: Center(child: Text(text)),
+      ),
+    );
+  }
+}
+
+class GridBox extends StatelessWidget {
+  const GridBox({
+    Key? key,
+    required this.size,
+    required this.x,
+    required this.y,
+  }) : super(key: key);
+
+  final double size;
+  final x;
+  final y;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        //color: Colors.white,
+        border: Border.all(
+          color: Colors.black38,
+          width: 0.5,
+        ),
+      ),
+      child: Text(
+        '$x, $y',
+        style: TextStyle(
+          fontSize: 8,
+        ),
       ),
     );
   }
